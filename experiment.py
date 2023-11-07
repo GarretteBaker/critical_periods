@@ -17,7 +17,7 @@ from devinterp.slt import estimate_learning_coeff_with_summary, plot_learning_co
 from devinterp.optim import SGLD
 import copy
 
-batch_size = 128
+batch_size = 64
 num_epochs = int(240 * 128/batch_size)
 step_size = int(num_epochs/13)
 
@@ -141,16 +141,16 @@ transform_test = transforms.Compose([
 
 # Apply the new transform to the training dataset
 train_dataset_blur = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train_blur)
-train_loader_blur = DataLoader(train_dataset_blur, batch_size=batch_size, shuffle=True, num_workers=0)
+train_loader_blur = DataLoader(train_dataset_blur, batch_size=batch_size, shuffle=True, num_workers=2)
 
 # Original training and test datasets
 train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
 test_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 
 # Original DataLoaders
-train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
-test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
-train_loader_subset = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=0, sampler=torch.utils.data.SubsetRandomSampler(range(10000)))
+train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=2)
+test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=2)
+train_loader_subset = DataLoader(train_dataset, batch_size=batch_size, shuffle=False, num_workers=2, sampler=torch.utils.data.SubsetRandomSampler(range(10000)))
 
 
 def train(model, train_loader, criterion, optimizer, device):
@@ -228,6 +228,7 @@ def train_model(model,
     scheduler_at_blur_removal = None
 
     for epoch in range(prev_epochs, num_epochs+1):
+        print(f"Epoch {epoch}/{num_epochs} (started from {prev_epochs})")
         # Select the correct data loader based on the current epoch
         current_loader = train_loader_blur if epoch <= remove_blur_after else train_loader
 
