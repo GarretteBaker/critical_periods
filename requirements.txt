@@ -2,3 +2,4 @@ devinterp
 matplotlib
 transformers
 torchvision
+accelerate
