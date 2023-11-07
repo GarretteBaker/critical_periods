@@ -18,8 +18,8 @@ from devinterp.optim import SGLD
 import copy
 
 batch_size = 128
-num_epochs = 20
-step_size = 10
+num_epochs = int(240 * 128/batch_size)
+step_size = int(num_epochs/13)
 
 class AllCNN(nn.Module):
     def __init__(self, num_classes=10):
