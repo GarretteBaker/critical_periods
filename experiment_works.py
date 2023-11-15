@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 from devinterp.slt import estimate_learning_coeff_with_summary, plot_learning_coeff_trace
 from devinterp.optim import SGLD
-
+import time
 
 class AllCNN(nn.Module):
     def __init__(self, num_classes=10):
@@ -137,15 +137,15 @@ transform_test = transforms.Compose([
 
 # Apply the new transform to the training dataset
 train_dataset_blur = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train_blur)
-train_loader_blur = DataLoader(train_dataset_blur, batch_size=64, shuffle=True, num_workers=2)
+train_loader_blur = DataLoader(train_dataset_blur, batch_size=256, shuffle=True, num_workers=2)
 
 # Original training and test datasets
 train_dataset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform_train)
 test_dataset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform_test)
 
 # Original DataLoaders
-train_loader = DataLoader(train_dataset, batch_size=64, shuffle=True, num_workers=2)
-test_loader = DataLoader(test_dataset, batch_size=64, shuffle=False, num_workers=2)
+train_loader = DataLoader(train_dataset, batch_size=256, shuffle=True, num_workers=2)
+test_loader = DataLoader(test_dataset, batch_size=256, shuffle=False, num_workers=2)
 
 def train(model, train_loader, criterion, optimizer, device):
     model.train()
@@ -200,8 +200,11 @@ def train_model(remove_blur_after, num_epochs, train_loader_blur, train_loader, 
     train_loss_at_blur_removal = None
     val_loss_at_blur_removal = None
     val_accuracy_at_blur_removal = None
-
+    t0 = time.time()
     for epoch in range(num_epochs):
+        print(f"Epoch {epoch+1}/{num_epochs}")
+        print(f"Time elapsed: {time.time() - t0} seconds")
+        t0 = time.time()
         # Select the correct data loader based on the current epoch
         current_loader = train_loader_blur if epoch <= remove_blur_after else train_loader
 
@@ -214,7 +217,7 @@ def train_model(remove_blur_after, num_epochs, train_loader_blur, train_loader, 
         if epoch == remove_blur_after:
             learning_coeff_stats = estimate_learning_coeff_with_summary(
                 model,
-                loader=train_loader,
+                loader=train_loader_blur,
                 criterion=criterion,
                 sampling_method=SGLD,
                 optimizer_kwargs=dict(lr=1e-5, elasticity=1.0, num_samples=len(train_dataset)),
@@ -248,11 +251,13 @@ def train_model(remove_blur_after, num_epochs, train_loader_blur, train_loader, 
     return (train_loss, val_loss, val_accuracy, lambdahat, learning_coeff_at_blur_removal,
             train_loss_at_blur_removal, val_loss_at_blur_removal, val_accuracy_at_blur_removal)
     
-num_epochs = 480
+num_epochs = 240
+# num_epochs=30 # for testing
+step = num_epochs//14
 
 # Looping over the function with different values for remove_blur_effect
 results = []
-for remove_blur_effect in tqdm(range(0, num_epochs+1, 40)):
+for remove_blur_effect in tqdm(range(0, num_epochs+1, step)):
     final_train_loss, final_val_loss, final_val_accuracy, final_lambdahat, learning_coeff_at_blur_removal, train_loss_at_blur_removal, val_loss_at_blur_removal, val_accuracy_at_blur_removal = train_model(
         remove_blur_effect, num_epochs, train_loader_blur, train_loader, test_loader, train_dataset
     )
@@ -272,10 +277,10 @@ for remove_blur_effect in tqdm(range(0, num_epochs+1, 40)):
 results_df = pd.DataFrame(results)
 
 # Save to CSV
-results_df.to_csv('results_64batch.csv', index=False)    
+results_df.to_csv('results_128batch.csv', index=False)    
 
 # loading results
-results = pd.read_csv('results_64batch.csv')
+results = pd.read_csv('results_128batch.csv')
 # moving to dictionary
 results = results.to_dict('records')
 
